@@ -1,6 +1,6 @@
 """积分系统主应用"""
 import os
-from flask import Flask, request, jsonify, render_template, session, redirect, url_for
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for, make_response
 from werkzeug.security import check_password_hash
 
 import requests
@@ -17,7 +17,13 @@ from datetime import datetime, timezone, timedelta
 
 
 app = Flask(__name__)
-app.secret_key = os.urandom(32)
+_secret_file = os.path.join(os.path.dirname(__file__), ".secret_key")
+if os.path.exists(_secret_file):
+    with open(_secret_file, "rb") as f: _sk = f.read()
+else:
+    _sk = os.urandom(32)
+    with open(_secret_file, "wb") as f: f.write(_sk)
+app.secret_key = _sk
 
 CST = timezone(timedelta(hours=8))
 
@@ -117,7 +123,9 @@ def index():
     if user["role"] == "admin":
         return redirect(url_for("admin_dashboard"))
     else:
-        return redirect(url_for("child_dashboard", child=user["username"]))
+        resp = make_response(redirect(url_for("child_dashboard", child=user["username"])))
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+        return resp
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -142,7 +150,9 @@ def login():
         else:
             return render_template("login.html", error="用户名或密码错误")
     
-    return render_template("login.html")
+    resp = make_response(render_template("login.html"))
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    return resp
 
 @app.route("/logout")
 def logout():
