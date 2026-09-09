@@ -6,6 +6,10 @@ from werkzeug.security import check_password_hash
 import requests
 import logging
 
+import os
+os.environ["NO_PROXY"] = "127.0.0.1,localhost,10.0.0.0/8"
+os.environ["no_proxy"] = os.environ["NO_PROXY"]
+
 from config import TABLETS, KID_MONITOR_URL, EXCHANGE_RATE
 from models import get_db, init_db, init_default_users
 from tablet_time import get_tablet_remaining_time
@@ -94,7 +98,7 @@ def is_weekend() -> bool:
         return True
     try:
         import requests as _req
-        r = _req.get(KID_MONITOR_URL + '/api/config', timeout=3)
+        r = _req.get(KID_MONITOR_URL + '/api/config', timeout=3, proxies={'http': None, 'https': None})
         day_type = r.json().get('day_type', 'workday')
         if day_type != 'workday':
             return True

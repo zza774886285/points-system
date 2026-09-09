@@ -111,8 +111,14 @@ def get_or_create_user(username: str, display_name: str, role: str, password_has
 def init_default_users():
     """初始化默认用户"""
     from werkzeug.security import generate_password_hash
-    
-    get_or_create_user("admin", "管理员", "admin", generate_password_hash("2024"))
+    admin_pw = os.getenv("ADMIN_PASSWORD", "2024")
+    admin_hash = generate_password_hash(admin_pw)
+    # 同步 admin 密码（防止旧数据库 hash 不匹配）
+    conn = get_db()
+    conn.execute("UPDATE users SET password_hash=? WHERE username=? AND role=?", (admin_hash, "admin", "admin"))
+    conn.commit()
+    conn.close()
+    get_or_create_user("admin", "管理员", "admin", admin_hash)
     get_or_create_user("lisa", "周楷依", "lisa", None, "lisa")
     get_or_create_user("huawei", "周芓翕", "huawei", None, "huawei")
 
