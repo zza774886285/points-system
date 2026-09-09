@@ -1,1 +1,356 @@
-404: Not Found
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>{{ user.display_name }} - 积分中心</title>
+<style>
+* { touch-action: manipulation; }
+.apply-btn, .exchange-btn { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+:root{
+--bg:#f5f5f7;--text:#1d1d1f;--text2:#86868b;
+--card:#fff;--card-radius:16px;
+--accent:#6366f1;--accent-light:#eef2ff;
+--success:#22c55e;--warning:#f59e0b;--danger:#ef4444;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif;
+background:var(--bg);color:var(--text);
+padding:20px;padding-bottom:100px;
+}
+.header{
+display:flex;justify-content:space-between;align-items:center;
+margin-bottom:24px;
+}
+.user-info{
+display:flex;align-items:center;gap:12px;
+}
+.avatar{
+font-size:36px;
+}
+.user-name{font-size:20px;font-weight:700}
+.user-role{font-size:13px;color:var(--text2)}
+.logout-btn{
+background:none;border:none;
+font-size:14px;color:var(--accent);cursor:pointer;
+}
+.points-card{
+background:linear-gradient(135deg,var(--accent),#8b5cf6);
+border-radius:var(--card-radius);
+padding:24px;color:#fff;margin-bottom:20px;
+}
+.points-label{font-size:14px;opacity:0.8}
+.points-value{font-size:48px;font-weight:700;line-height:1.2}
+.points-sub{font-size:13px;opacity:0.7;margin-top:4px}
+.card{
+background:var(--card);
+border-radius:var(--card-radius);
+padding:20px;margin-bottom:16px;
+box-shadow:0 1px 3px rgba(0,0,0,0.04);
+}
+.card-title{
+font-size:16px;font-weight:600;
+margin-bottom:16px;display:flex;align-items:center;gap:8px;
+}
+.quota-grid{
+display:grid;gap:12px;
+}
+.quota-item{
+display:flex;justify-content:space-between;align-items:center;
+padding:14px 16px;
+background:#f5f5f7;border-radius:12px;
+}
+.quota-label{font-size:14px}
+.quota-badge{
+font-size:12px;font-weight:600;
+padding:4px 10px;border-radius:20px;
+}
+.badge-available{background:#dcfce7;color:#16a34a}
+.badge-used{background:#fee2e2;color:#dc2626}
+.badge-unavailable{background:#e5e5e5;color:#9e9e9e}
+.apply-section{margin-bottom:20px}
+.apply-btn{
+width:100%;padding:16px;
+font-size:16px;font-weight:600;
+border:2px solid #e5e5e5;
+border-radius:14px;
+background:#fff;
+cursor:pointer;
+display:flex;justify-content:space-between;align-items:center;
+transition:all 0.2s;margin-bottom:10px;
+}
+.apply-btn:hover{
+border-color:var(--accent);background:var(--accent-light);
+}
+.apply-btn:disabled{
+opacity:0.5;cursor:not-allowed;
+border-color:#e5e5e5;background:#f5f5f5;
+}
+.apply-btn:disabled:hover{
+border-color:#e5e5e5;background:#f5f5f5;
+}
+.apply-info{display:flex;align-items:center;gap:10px}
+.apply-icon{font-size:24px}
+.apply-points{
+font-size:14px;color:var(--accent);font-weight:600;
+}
+.exchange-section{
+margin-top:20px;
+}
+.exchange-btn{
+width:100%;padding:18px;
+font-size:18px;font-weight:700;
+background:linear-gradient(135deg,#22c55e,#16a34a);
+border:none;border-radius:14px;
+color:#fff;cursor:pointer;
+transition:all 0.2s;
+margin-bottom:10px;
+}
+.exchange-btn:hover{
+transform:translateY(-2px);
+box-shadow:0 8px 25px rgba(34,197,94,0.3);
+}
+.exchange-btn:disabled{
+opacity:0.5;cursor:not-allowed;
+transform:none;box-shadow:none;
+}
+.exchange-info{
+font-size:13px;color:var(--text2);
+text-align:center;margin-top:8px;
+}
+.pending-card{
+background:#fffbeb;border:1px solid #fcd34d;
+border-radius:var(--card-radius);
+padding:16px;margin-bottom:16px;
+}
+.pending-title{
+font-size:14px;font-weight:600;
+color:#92400e;margin-bottom:8px;
+display:flex;align-items:center;gap:6px;
+}
+.pending-item{
+font-size:13px;color:#a16207;
+padding:6px 0;
+display:flex;justify-content:space-between;
+border-bottom:1px solid #fde68a;
+}
+.pending-item:last-child{border:none}
+.pending-time{font-size:12px;color:#ca8a04}
+.empty-state{
+text-align:center;padding:40px;color:var(--text2);
+}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.footer{
+position:fixed;bottom:0;left:0;right:0;
+background:var(--card);
+padding:16px 20px;
+box-shadow:0 -2px 10px rgba(0,0,0,0.05);
+}
+.footer-btn{
+width:100%;padding:14px;
+font-size:16px;font-weight:600;
+border:none;border-radius:12px;
+cursor:pointer;
+}
+.footer-btn-history{
+background:#f5f5f7;color:var(--text);
+}
+.weekend-badge{
+background:#fef3c7;
+color:#92400e;
+padding:8px 16px;
+border-radius:20px;
+font-size:13px;font-weight:600;
+display:inline-block;
+margin-bottom:16px;
+}
+.weekend-warning{
+background:#fee2e2;
+color:#991b1b;
+padding:12px 16px;
+border-radius:12px;
+font-size:13px;
+margin-bottom:16px;
+}
+.toast{
+position:fixed;top:20px;left:50%;transform:translateX(-50%);
+background:#1d1d1f;color:#fff;
+padding:12px 24px;border-radius:10px;
+font-size:14px;z-index:1000;
+opacity:0;transition:opacity 0.3s;
+pointer-events:none;
+}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="header">
+    <div class="user-info">
+        <span class="avatar">{{ '👧' if user.username == 'lisa' else '👶' }}</span>
+        <div>
+            <div class="user-name">{{ user.display_name }}</div>
+            <div class="user-role">积分中心</div>
+        </div>
+    </div>
+    <a href="/logout" class="logout-btn">退出</a>
+</div>
+
+<div class="points-card">
+    <div class="points-label">当前积分</div>
+    <div class="points-value" id="points-value">{{ points }}</div>
+    <div class="points-sub">30积分 = 30分钟平板时间</div>
+</div>
+
+{% if is_weekend %}
+<span class="weekend-badge">📅 周末模式 - 可申请积分</span>
+{% else %}
+<div class="weekend-warning">⏰ 仅周末可申请积分，工作日暂不可用</div>
+{% endif %}
+
+{% if pending %}
+<div class="pending-card">
+    <div class="pending-title">⏳ 待审批申请</div>
+    {% for p in pending %}
+    <div class="pending-item">
+        <span>{{ {'tutoring':'补课','homework':'作业','other':'其他'}.get(p.request_type, p.request_type) }}</span>
+        <span class="pending-time">{{ p.points }}分 · 等待中</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-title">📊 本周额度</div>
+    <div class="quota-grid">
+        <div class="quota-item">
+            <span class="quota-label">📚 补课</span>
+            {% if quota.tutoring_used > 0 %}
+            <span class="quota-badge badge-used">已领取 {{ points_config.tutoring }}分</span>
+            {% else %}
+            <span class="quota-badge badge-available">可领取 {{ points_config.tutoring }}分</span>
+            {% endif %}
+        </div>
+        <div class="quota-item">
+            <span class="quota-label">📝 作业</span>
+            {% if quota.homework_used > 0 %}
+            <span class="quota-badge badge-used">已领取 {{ points_config.homework }}分</span>
+            {% else %}
+            <span class="quota-badge badge-available">可领取 {{ points_config.homework }}分</span>
+            {% endif %}
+        </div>
+        <div class="quota-item">
+            <span class="quota-label">✨ 其他</span>
+            {% if quota.other_used > 0 %}
+            <span class="quota-badge badge-used">已领取 {{ points_config.other }}分</span>
+            {% else %}
+            <span class="quota-badge badge-available">可领取 {{ points_config.other }}分</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="card apply-section">
+    <div class="card-title">🎯 申请积分</div>
+    
+    {% if not is_weekend %}
+    <div class="empty-state">
+        <div class="empty-icon">📅</div>
+        <div>仅周末可申请积分</div>
+    </div>
+    {% else %}
+    <button class="apply-btn" onclick="applyPoints('tutoring')" 
+        {{ 'disabled' if quota.tutoring_used > 0 }}>
+        <div class="apply-info">
+            <span class="apply-icon">📚</span>
+            <span>完成补课</span>
+        </div>
+        <span class="apply-points">+{{ points_config.tutoring }}分</span>
+    </button>
+    
+    <button class="apply-btn" onclick="applyPoints('homework')" 
+        {{ 'disabled' if quota.homework_used > 0 }}>
+        <div class="apply-info">
+            <span class="apply-icon">📝</span>
+            <span>完成作业</span>
+        </div>
+        <span class="apply-points">+{{ points_config.homework }}分</span>
+    </button>
+    
+    <button class="apply-btn" onclick="applyPoints('other')" 
+        {{ 'disabled' if quota.other_used > 0 }}>
+        <div class="apply-info">
+            <span class="apply-icon">✨</span>
+            <span>其他表现</span>
+        </div>
+        <span class="apply-points">+{{ points_config.other }}分</span>
+    </button>
+    {% endif %}
+</div>
+
+<div class="card exchange-section">
+    <div class="card-title">🎁 兑换时间</div>
+    <button class="exchange-btn" onclick="exchangePoints()" {{ 'disabled' if points < 30 }}>
+        {{ '立即兑换 30分钟' if points >= 30 else '积分不足，至少需要30积分' }}
+    </button>
+    <div class="exchange-info">30积分可兑换30分钟平板时间</div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+function showToast(msg, duration=2000) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), duration);
+}
+
+async function applyPoints(type) {
+    if (!confirm('确认申请积分？')) return;
+    
+    try {
+        const resp = await fetch('/api/apply', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({type})
+        });
+        const data = await resp.json();
+        
+        if (data.ok) {
+            showToast('✅ ' + data.message);
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('❌ ' + data.error);
+        }
+    } catch(e) {
+        showToast('❌ 网络错误');
+    }
+}
+
+async function exchangePoints() {
+    if (!confirm('确认用30积分兑换30分钟平板时间？')) return;
+    
+    try {
+        const resp = await fetch('/api/exchange', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({points: 30})
+        });
+        const data = await resp.json();
+        
+        if (data.ok) {
+            showToast('🎉 ' + data.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast('❌ ' + data.error);
+        }
+    } catch(e) {
+        showToast('❌ 网络错误');
+    }
+}
+</script>
+</body>
+</html>
+
+
