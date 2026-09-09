@@ -417,6 +417,11 @@ def set_points():
     
     return jsonify({"ok": True, "message": f"积分已设置为{points}"})
 
+
+@app.route('/guide')
+def guide():
+    return render_template('guide.html')
+
 if __name__ == "__main__":
     init_db()
     init_default_users()

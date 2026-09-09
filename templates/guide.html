@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>积分系统 - 使用说明</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: linear-gradient(135deg, #fdf4ff 0%, #f5f3ff 50%, #ede9fe 100%);
+  min-height: 100vh; padding: 24px 16px; color: #1e1b4b;
+}
+.card {
+  max-width: 420px; margin: 0 auto 20px; background: white;
+  border-radius: 20px; padding: 28px 24px;
+  box-shadow: 0 4px 20px rgba(107,33,168,0.08);
+}
+.title {
+  text-align: center; font-size: 26px; font-weight: 800; margin-bottom: 6px;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.subtitle { text-align: center; font-size: 14px; color: #9ca3af; margin-bottom: 24px; }
+.qr-section { text-align: center; margin-bottom: 24px; }
+.qr-section img {
+  width: 220px; height: 220px; border: 3px solid #ede9fe;
+  border-radius: 16px; padding: 8px;
+}
+.qr-hint { font-size: 13px; color: #a78bfa; margin-top: 8px; font-weight: 500; }
+.step {
+  display: flex; align-items: flex-start; gap: 14px;
+  margin-bottom: 18px; padding: 16px; background: #faf5ff; border-radius: 14px;
+}
+.step-num {
+  flex-shrink: 0; width: 36px; height: 36px;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: white; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 700;
+}
+.step-body h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.step-body p { font-size: 14px; color: #6b7280; line-height: 1.5; }
+.tip-box {
+  background: #fef3c7; border-left: 4px solid #f59e0b;
+  border-radius: 0 12px 12px 0; padding: 14px 16px;
+  margin-top: 20px; font-size: 13px; color: #92400e; line-height: 1.6;
+}
+.tip-box strong { color: #b45309; }
+.footer { text-align: center; font-size: 12px; color: #d1d5db; margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="title">📱 平板时间积分</div>
+  <div class="subtitle">做任务攒积分，兑换平板时间！</div>
+  <div class="qr-section">
+    <img src="data:image/png;base64,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" alt="扫码打开积分系统">
+    <div class="qr-hint">👆 扫码打开积分系统</div>
+  </div>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <h3>🔑 登录</h3>
+      <p>扫码后选你的名字，点<strong>登录</strong></p>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <h3>📝 申请积分</h3>
+      <p>完成任务后点<strong>「申请积分」</strong><br>选任务类型，提交，等爸爸妈妈审批 ✅</p>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <h3>🎁 兑换时间</h3>
+      <p>攒够积分后点<strong>「兑换平板时间」</strong><br>1积分 = 1分钟，兑换后平板自动延时 ⏰</p>
+    </div>
+  </div>
+  <div class="tip-box">
+    <strong>💡 注意：</strong><br>
+    · 每周每种任务只能申请 <strong>1次</strong><br>
+    · 申请后需要等爸爸妈妈同意<br>
+    · 平板时间用完就不能再玩啦<br>
+    · 想多玩就要多攒积分哦！
+  </div>
+</div>
+<div class="footer">© 家庭积分系统 v1.0</div>
+</body>
+</html>
