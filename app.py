@@ -89,9 +89,18 @@ def get_weekly_quota(user_id: int) -> dict:
     return dict(quota) if quota else {"tutoring_used": 0, "homework_used": 0, "other_used": 0}
 
 def is_weekend() -> bool:
-    """判断今天是否是周末"""
     today = datetime.now()
-    return today.weekday() >= 5  # 周六=5, 周日=6
+    if today.weekday() >= 5:
+        return True
+    try:
+        import requests as _req
+        r = _req.get(KID_MONITOR_URL + '/api/config', timeout=3)
+        day_type = r.json().get('day_type', 'workday')
+        if day_type != 'workday':
+            return True
+    except Exception:
+        pass
+    return False
 
 # 路由
 @app.route("/")
