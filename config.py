@@ -5,16 +5,16 @@ import os
 DB_PATH = "/app/data/points.db"
 
 # 管理员密码
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "2024")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 
 # Kid Monitor API
 KID_MONITOR_URL = os.getenv("KID_MONITOR_URL", "http://127.0.0.1:18089")
 
-# 平板配置（MAC地址）
+# 平板配置（MAC地址从环境变量读取）
 TABLETS = {
     "lisa": {
-        "name": "周楷依",
-        "mac": os.getenv("LISA_MAC", "80:5F:C5:31:4D:5E"),
+        "name": os.getenv("LISA_NAME", "周楷依"),
+        "mac": os.getenv("LISA_MAC", ""),
         "points_config": {
             "tutoring": 60,  # 补课（2门）
             "homework": 30,
@@ -22,8 +22,8 @@ TABLETS = {
         }
     },
     "huawei": {
-        "name": "周芓翕",
-        "mac": os.getenv("HUAWEI_MAC", "A0:DE:0F:45:2D:39"),
+        "name": os.getenv("HUAWEI_NAME", "周芓翕"),
+        "mac": os.getenv("HUAWEI_MAC", ""),
         "points_config": {
             "tutoring": 30,  # 补课（1门）
             "homework": 30,
@@ -37,4 +37,3 @@ EXCHANGE_RATE = 1
 
 # QQ通知（预留）
 QQ_NOTIFY_ENABLED = os.getenv("QQ_NOTIFY", "true").lower() == "true"
-

@@ -203,12 +203,13 @@ def apply_points():
         (user["id"], request_type, points)
     )
     conn.commit()
+    req_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
     conn.close()
     
     # 发送Telegram通知
     try:
         from telegram_notify import send_approval_request
-        send_approval_request(user["display_name"], request_type, points)
+        send_approval_request(user["display_name"], request_type, points, request_id=req_id)
     except Exception as e:
         logger.error(f"Telegram notification failed: {e}")
     
