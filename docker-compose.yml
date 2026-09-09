@@ -1,0 +1,16 @@
+services:
+  points:
+    build: .
+    container_name: points-system
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./data:/app/data
+    environment:
+      - TZ=Asia/Shanghai
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - KID_MONITOR_URL=http://127.0.0.1:18089
+      - LISA_MAC=${LISA_MAC}
+      - HUAWEI_MAC=${HUAWEI_MAC}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
