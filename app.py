@@ -341,7 +341,8 @@ def exchange_points():
         resp = http_requests.post(
             f"{KID_MONITOR_URL}/kid-adjust",
             json={"mac": mac, "delta": minutes * 60},
-            timeout=10
+            timeout=10,
+            proxies={'http': None, 'https': None}
         )
         result = resp.json()
         if not result.get("ok"):
