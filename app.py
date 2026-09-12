@@ -2,8 +2,7 @@
 import os
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for, make_response
 from werkzeug.security import check_password_hash
-
-import requests
+import requests as http_requests
 import logging
 
 os.environ["NO_PROXY"] = "127.0.0.1,localhost,10.0.0.0/8"
@@ -13,7 +12,6 @@ from config import TABLETS, KID_MONITOR_URL, EXCHANGE_RATE
 from models import get_db, init_db, init_default_users
 from tablet_time import get_tablet_remaining_time
 from datetime import datetime, timezone, timedelta
-
 
 app = Flask(__name__)
 _secret_file = os.path.join(os.path.dirname(__file__), ".secret_key")
@@ -36,7 +34,7 @@ def cst_time_filter(s):
     elif isinstance(s, datetime):
         dt = s
     else:
-            return s
+        return s
     dt = dt.replace(tzinfo=timezone.utc).astimezone(CST)
     return dt.strftime('%m-%d %H:%M')
 
@@ -82,7 +80,6 @@ def get_weekly_quota(user_id: int) -> dict:
         "SELECT * FROM weekly_quota WHERE user_id = ? AND week_start = ?",
         (user_id, week_start)
     ).fetchone()
-    
     if not quota:
         conn.execute(
             "INSERT INTO weekly_quota (user_id, week_start) VALUES (?, ?)",
@@ -93,7 +90,6 @@ def get_weekly_quota(user_id: int) -> dict:
             "SELECT * FROM weekly_quota WHERE user_id = ? AND week_start = ?",
             (user_id, week_start)
         ).fetchone()
-    
     conn.close()
     return dict(quota) if quota else {"tutoring_used": 0, "homework_used": 0, "other_used": 0}
 
@@ -102,8 +98,7 @@ def is_weekend() -> bool:
     if today.weekday() >= 5:
         return True
     try:
-        import requests as _req
-        r = _req.get(KID_MONITOR_URL + '/api/config', timeout=3, proxies={'http': None, 'https': None})
+        r = http_requests.get(KID_MONITOR_URL + '/api/config', timeout=3, proxies={'http': None, 'https': None})
         day_type = r.json().get('day_type', 'workday')
         if day_type != 'workday':
             return True
@@ -118,7 +113,6 @@ def index():
     user = get_current_user()
     if not user:
         return redirect(url_for("login"))
-    
     if user["role"] == "admin":
         return redirect(url_for("admin_dashboard"))
     else:
@@ -132,11 +126,9 @@ def login():
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
-        
         conn = get_db()
         user = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
         conn.close()
-        
         if user:
             # 孩子无需密码，直接进入
             if user["role"] in ["lisa", "huawei"]:
@@ -146,9 +138,8 @@ def login():
             elif user["role"] == "admin" and user["password_hash"] and check_password_hash(user["password_hash"], password):
                 session["user_id"] = user["id"]
                 return redirect(url_for("admin_dashboard"))
-        else:
-            return render_template("login.html", error="用户名或密码错误")
-    
+            else:
+                return render_template("login.html", error="用户名或密码错误")
     resp = make_response(render_template("login.html"))
     resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
     return resp
@@ -166,12 +157,10 @@ def child_dashboard(child: str):
     user = get_current_user()
     if not user or user["username"] != child:
         return redirect(url_for("login"))
-    
     points = get_user_points(user["id"])
     quota = get_weekly_quota(user["id"])
     tablet_config = TABLETS.get(user["tablet_key"], {})
     points_config = tablet_config.get("points_config", {})
-    
     # 获取待审批申请
     conn = get_db()
     pending = conn.execute(
@@ -179,17 +168,27 @@ def child_dashboard(child: str):
         (user["id"],)
     ).fetchall()
     pending = [dict(r) for r in pending]
+    # 获取交易历史（最近20条）
+    history = conn.execute(
+        "SELECT * FROM point_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 20",
+        (user["id"],)
+    ).fetchall()
+    history = [dict(r) for r in history]
     conn.close()
-    
-    return render_template(
+    resp = make_response(render_template(
         "child_dashboard.html",
         user=user,
         points=points,
         quota=quota,
         points_config=points_config,
         pending=pending,
+        history=history,
         is_weekend=is_weekend()
-    )
+    ))
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 @app.route("/api/apply", methods=["POST"])
 def apply_points():
@@ -197,26 +196,21 @@ def apply_points():
     user = get_current_user()
     if not user or user["role"] not in ["lisa", "huawei", "admin"]:
         return jsonify({"ok": False, "error": "无权限"}), 403
-    
     if not is_weekend():
         return jsonify({"ok": False, "error": "仅限周末申请积分"}), 400
-    
     request_type = request.json.get("type")
     if request_type not in ["tutoring", "homework", "other"]:
         return jsonify({"ok": False, "error": "无效的申请类型"}), 400
-    
     # 检查本周额度
     quota = get_weekly_quota(user["id"])
     tablet_config = TABLETS.get(user["tablet_key"], {})
     points_config = tablet_config.get("points_config", {})
-    
     if request_type == "tutoring" and quota["tutoring_used"] > 0:
         return jsonify({"ok": False, "error": "本周补课积分已领取"}), 400
     elif request_type == "homework" and quota["homework_used"] > 0:
         return jsonify({"ok": False, "error": "本周作业积分已领取"}), 400
     elif request_type == "other" and quota["other_used"] > 0:
         return jsonify({"ok": False, "error": "本周其他积分已领取"}), 400
-    
     # 创建申请
     points = points_config.get(request_type, 0)
     conn = get_db()
@@ -227,14 +221,12 @@ def apply_points():
     conn.commit()
     req_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
     conn.close()
-    
     # 发送Telegram通知
     try:
         from telegram_notify import send_approval_request
         send_approval_request(user["display_name"], request_type, points, request_id=req_id)
     except Exception as e:
         logger.error(f"Telegram notification failed: {e}")
-    
     return jsonify({"ok": True, "message": "申请已提交，等待审批"})
 
 # 管理员端路由
@@ -244,9 +236,7 @@ def admin_dashboard():
     user = get_current_user()
     if not user or user["role"] != "admin":
         return redirect(url_for("login"))
-    
     conn = get_db()
-    
     # 获取所有孩子积分
     children = conn.execute(
         "SELECT u.*, COALESCE(SUM(CASE WHEN t.tx_type='earn' THEN t.points ELSE -t.points END), 0) as balance "
@@ -254,29 +244,27 @@ def admin_dashboard():
         "WHERE u.role IN ('lisa', 'huawei') GROUP BY u.id"
     ).fetchall()
     children = [dict(c) for c in children]
-    
     # 获取待审批申请
     pending = conn.execute(
         "SELECT pr.*, u.display_name as child_name FROM point_requests pr "
         "JOIN users u ON pr.user_id = u.id WHERE pr.status = 'pending' ORDER BY pr.created_at DESC"
     ).fetchall()
     pending = [dict(r) for r in pending]
-    
     # 获取最近交易
     recent = conn.execute(
         "SELECT pt.*, u.display_name as child_name FROM point_transactions pt "
         "JOIN users u ON pt.user_id = u.id ORDER BY pt.created_at DESC LIMIT 20"
     ).fetchall()
     recent = [dict(r) for r in recent]
-    
     conn.close()
-    
-    return render_template(
+    resp = make_response(render_template(
         "admin_dashboard.html",
         children=children,
         pending=pending,
         recent=recent
-    )
+    ))
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    return resp
 
 @app.route("/api/approve", methods=["POST"])
 def approve_request():
@@ -284,18 +272,14 @@ def approve_request():
     user = get_current_user()
     if not user or user["role"] != "admin":
         return jsonify({"ok": False, "error": "无权限"}), 403
-    
     request_id = request.json.get("request_id")
-    action = request.json.get("action")  # 'approve' or 'reject'
+    action = request.json.get("action") # 'approve' or 'reject'
     note = request.json.get("note", "")
-    
     conn = get_db()
     req = conn.execute("SELECT * FROM point_requests WHERE id = ?", (request_id,)).fetchone()
-    
     if not req or req["status"] != "pending":
         conn.close()
         return jsonify({"ok": False, "error": "申请不存在或已处理"}), 400
-    
     if action == "approve":
         # 更新额度
         week_start = get_week_start()
@@ -314,7 +298,6 @@ def approve_request():
                 "UPDATE weekly_quota SET other_used = 1 WHERE user_id = ? AND week_start = ?",
                 (req["user_id"], week_start)
             )
-        
         # 记录交易
         balance = get_user_points(req["user_id"]) + req["points"]
         conn.execute(
@@ -322,16 +305,13 @@ def approve_request():
             "VALUES (?, 'earn', ?, ?, ?, ?)",
             (req["user_id"], req["points"], balance, f"{req['request_type']}积分", request_id)
         )
-    
     # 更新申请状态
     conn.execute(
         "UPDATE point_requests SET status = ?, admin_note = ?, processed_at = CURRENT_TIMESTAMP WHERE id = ?",
         ("approved" if action == "approve" else "rejected", note, request_id)
     )
-    
     conn.commit()
     conn.close()
-    
     return jsonify({"ok": True, "message": "已审批"})
 
 @app.route("/api/exchange", methods=["POST"])
@@ -341,36 +321,34 @@ def exchange_points():
     logger.info(f"exchange: user={user}, session_user_id={session.get('user_id')}")
     if not user or user["role"] not in ["lisa", "huawei", "admin"]:
         return jsonify({"ok": False, "error": "无权限"}), 403
-    
-    points_to_use = request.json.get("points", 30)
-    
+    points_to_use = request.json.get("points", 10)
+    # 校验积分数
+    if not isinstance(points_to_use, int) or points_to_use < 10:
+        return jsonify({"ok": False, "error": "最少兑换10积分"}), 400
+    if points_to_use % 10 != 0:
+        return jsonify({"ok": False, "error": "积分数必须是10的倍数"}), 400
     # 检查积分
     current_balance = get_user_points(user["id"])
     if current_balance < points_to_use:
         return jsonify({"ok": False, "error": f"积分不足，当前{current_balance}积分"}), 400
-    
     minutes = points_to_use * EXCHANGE_RATE
     tablet_config = TABLETS.get(user["tablet_key"], {})
     mac = tablet_config.get("mac", "")
-    
     if not mac:
         return jsonify({"ok": False, "error": "未配置平板MAC地址"}), 400
-    
     # 调用kid-monitor API
     try:
-        resp = requests.post(
+        resp = http_requests.post(
             f"{KID_MONITOR_URL}/kid-adjust",
             json={"mac": mac, "delta": minutes * 60},
             timeout=10
         )
         result = resp.json()
-        
         if not result.get("ok"):
             return jsonify({"ok": False, "error": f"Kid Monitor错误: {result.get('error', '未知')}"}), 500
     except Exception as e:
         logger.error(f"Kid Monitor调用失败: {e}")
         return jsonify({"ok": False, "error": "Kid Monitor连接失败"}), 500
-    
     # 记录兑换
     conn = get_db()
     balance = current_balance - points_to_use
@@ -386,7 +364,6 @@ def exchange_points():
     )
     conn.commit()
     conn.close()
-    
     return jsonify({"ok": True, "message": f"兑换成功！获得{minutes}分钟平板时间", "minutes": minutes})
 
 @app.route("/api/set_points", methods=["POST"])
@@ -395,18 +372,14 @@ def set_points():
     user = get_current_user()
     if not user or user["role"] != "admin":
         return jsonify({"ok": False, "error": "无权限"}), 403
-    
     target_user_id = request.json.get("user_id")
     points = request.json.get("points")
-    
     if not isinstance(points, int):
         return jsonify({"ok": False, "error": "积分必须是整数"}), 400
-    
     conn = get_db()
     current_balance = get_user_points(target_user_id)
     diff = points - current_balance
     tx_type = "earn" if diff > 0 else "exchange"
-    
     conn.execute(
         "INSERT INTO point_transactions (user_id, tx_type, points, balance_after, description) "
         "VALUES (?, ?, ?, ?, ?)",
@@ -414,9 +387,7 @@ def set_points():
     )
     conn.commit()
     conn.close()
-    
     return jsonify({"ok": True, "message": f"积分已设置为{points}"})
-
 
 @app.route('/guide')
 def guide():
@@ -426,4 +397,3 @@ if __name__ == "__main__":
     init_db()
     init_default_users()
     app.run(host="0.0.0.0", port=18090, debug=True)
-
